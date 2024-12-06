@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  app:
+    image: mycompanyname/abptemplate:latest
+    container_name: abptemplate_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7080:80"    # Mapear puerto 80 del contenedor al 7080 del host
+      - "7081:443"   # Mapear puerto 443 del contenedor al 7081 del host
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:443
+      - App__SelfUrl=https://localhost:7081    # Ajuste para SelfUrl
+      - AuthServer__Authority=https://localhost:7081  # Ajuste para AuthServer Authority
+      - ConnectionStrings__Default=Server=db;Database=BookStore;User=sa;Password=StrongPassword!123;TrustServerCertificate=true  # Conexión a la DB
+      - StringEncryption__DefaultPassPhrase=NSmw7ZIpvm1EDbWV
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - db
+    command: >
+      bash -c "dotnet ef database update && dotnet Acme.BookStore.Web.dll"
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: abptemplate_db
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "StrongPassword!123"
+      ACCEPT_EULA: "Y"
+    volumes:
+      - db_data:/var/opt/mssql
+      - ./scripts:/docker-entrypoint-initdb.d # Volumen con scripts SQL para inicializar la DB
+
+volumes:
+  db_data:
